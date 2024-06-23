@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Weather Chat</title>
+  <style>
+    #chat-container { display: none; }
+    #participants { float: right; width: 200px; }
+    #chat-messages { height: 300px; overflow-y: scroll; }
+  </style>
+</head>
+<body>
+<div id="login-form">
+  <input type="text" id="username" placeholder="Enter your name">
+  <button onclick="join()">Join Chat</button>
+</div>
+
+<div id="chat-container">
+  <h2 id="weather-info"></h2>
+  <div id="participants">
+    <h3>Participants</h3>
+    <ul id="participant-list"></ul>
+  </div>
+  <div id="chat-messages"></div>
+  <input type="text" id="message-input" placeholder="Type a message...">
+  <button onclick="sendMessage()">Send</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+<script>
+  let socket;
+  let username;
+  let inChatRoom = false;
+
+  function join() {
+    username = document.getElementById('username').value;
+    if (!username) {
+      alert('Please enter your name');
+      return;
+    }
+    document.getElementById('login-form').style.display = 'none';
+    document.getElementById('chat-container').style.display = 'block';
+
+    // 위치 정보 가져오기
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(function(position) {
+        connect(position.coords.latitude, position.coords.longitude);
+      }, function(error) {
+        console.error("Error getting location:", error);
+        connect(0, 0); // 기본값 사용
+      });
+    } else {
+      console.log("Geolocation is not available");
+      connect(0, 0); // 기본값 사용
+    }
+  }
+
+  function connect(lat, lon) {
+    socket = new SockJS('/chat');
+
+    socket.onopen = function() {
+      console.log('Connected to the WebSocket');
+      socket.send(JSON.stringify({
+        type: 'join',
+        username: username,
+        lat: lat,
+        lon: lon
+      }));
+    };
+
+    socket.onmessage = function(event) {
+      const message = JSON.parse(event.data);
+      switch(message.type) {
+        case 'weather':
+          inChatRoom = true;
+          updateWeatherInfo(message.weather);
+          break;
+        case 'chat':
+          addChatMessage(message);
+          break;
+        case 'participants':
+          updateParticipants(message.list);
+          break;
+        case 'error':
+          console.error(message.message);
+          break;
+      }
+    };
+
+    socket.onclose = function() {
+      console.log('Disconnected from the WebSocket');
+      setTimeout(() => join(), 5000);
+    };
+  }
+
+  function join() {
+    username = document.getElementById('username').value;
+    if (!username) {
+      alert('Please enter your name');
+      return;
+    }
+    document.getElementById('login-form').style.display = 'none';
+    document.getElementById('chat-container').style.display = 'block';
+
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(function(position) {
+        connect(position.coords.latitude, position.coords.longitude);
+      }, function(error) {
+        console.error("Error getting location:", error);
+        connect(0, 0); // 기본값 사용
+      });
+    } else {
+      console.log("Geolocation is not available");
+      connect(0, 0); // 기본값 사용
+    }
+  }
+
+  function sendMessage() {
+    const messageInput = document.getElementById('message-input');
+    if (messageInput.value && socket.readyState === SockJS.OPEN) {
+      if (!inChatRoom) {
+        console.error("You are not in a chat room. Please join first.");
+        return;
+      }
+      console.log('Sending message:', messageInput.value);
+      socket.send(JSON.stringify({type: 'chat', content: messageInput.value}));
+      messageInput.value = '';
+    }
+  }
+  function addChatMessage(message) {
+    const chatMessages = document.getElementById('chat-messages');
+    const messageElement = document.createElement('p');
+    const time = new Date(message.timestamp).toLocaleTimeString();
+    messageElement.innerHTML = `<strong>${message.username}</strong> (${time}): ${message.content}`;
+    chatMessages.appendChild(messageElement);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+
+  function updateParticipants(participants) {
+    const participantList = document.getElementById('participant-list');
+    participantList.innerHTML = '';
+    participants.forEach(participant => {
+      const li = document.createElement('li');
+      li.textContent = participant;
+      participantList.appendChild(li);
+    });
+  }
+
+  function updateWeatherInfo(weather) {
+    document.getElementById('weather-info').textContent = `Current Weather: ${weather}`;
+  }
+
+  document.getElementById('message-input').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+      sendMessage();
+    }
+  });
+</script>
+</body>
+</html>
