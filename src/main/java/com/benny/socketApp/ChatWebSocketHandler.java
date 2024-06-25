@@ -156,4 +156,29 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
             }
         }
     }
+
+    public List<String> getWeatherRooms() {
+        return new ArrayList<>(weatherRooms.keySet());
+    }
+
+    public Map<String, Integer> getWeatherRoomParticipants() {
+        Map<String, Integer> roomParticipants = new HashMap<>();
+        for (Map.Entry<String, Map<WebSocketSession, String>> entry : weatherRooms.entrySet()) {
+            roomParticipants.put(entry.getKey(), entry.getValue().size());
+        }
+        return roomParticipants;
+    }
+
+    public Map<String, String> getWeatherRoomLocations() {
+        Map<String, String> roomLocations = new HashMap<>();
+        for (String room : weatherRooms.keySet()) {
+            String[] parts = room.split(",");
+            if (parts.length == 2) {
+                roomLocations.put(room, String.format("%s,%s", parts[0], parts[1]));
+            }
+        }
+        return roomLocations;
+    }
+
+
 }

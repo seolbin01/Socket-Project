@@ -1,9 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Weather Chat</title>
+    <style>
+        #map {
+            height: 400px;
+            width: 100%;
+        }
+    </style>
 </head>
 <body>
 <div id="login-form">
@@ -11,16 +17,208 @@
     <button onclick="join()">채팅 들어가기</button>
 </div>
 
-<script>
+<div id="room-list">
+    <h3>현재 생성된 채팅방:</h3>
+    <ul>
+        <li th:each="room : ${weatherRooms}">
+            <span th:text="${room}"></span>
+            (<span th:text="${weatherRoomParticipants.get(room)}"></span>명)
+        </li>
+    </ul>
+</div>
+
+<div id="weather-container">
+    <div id="current-weather" onclick="selectWeather('current')">
+        <h3>현재 위치 날씨:</h3>
+        <p id="location-info"></p>
+        <p id="weather-info"></p>
+        <p id="temperature-info"></p>
+    </div>
+    <div id="selected-location-weather" onclick="selectWeather('selected')">
+        <h3>클릭한 위치 날씨:</h3>
+        <p id="selected-location-info"></p>
+        <p id="selected-weather-info"></p>
+        <p id="selected-temperature-info"></p>
+    </div>
+</div>
+
+<div id="map"></div>
+
+<style>
+    #map {
+        height: 400px;
+        width: 100%;
+    }
+    #weather-container {
+        display: flex;
+        justify-content: space-around;
+        margin-bottom: 20px;
+    }
+    #current-weather, #selected-location-weather {
+        flex-basis: 45%;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+    }
+    #current-weather {
+        border: 2px solid blue;
+    }
+    #selected-location-weather {
+        pointer-events: none;
+        opacity: 0.5;
+    }
+    #selected-location-weather.clickable {
+        pointer-events: auto;
+        opacity: 1;
+    }
+</style>
+
+<script th:inline="javascript">
+    let selectedLocation = null;
+    let selectedWeather = 'current';
+
+    function selectWeather(type) {
+        if (type === 'current') {
+            document.getElementById('current-weather').style.border = '2px solid blue';
+            document.getElementById('selected-location-weather').style.border = '1px solid #ccc';
+            selectedWeather = 'current';
+        } else if (selectedLocation) {
+            document.getElementById('current-weather').style.border = '1px solid #ccc';
+            document.getElementById('selected-location-weather').style.border = '2px solid blue';
+            selectedWeather = 'selected';
+        }
+    }
+
+
     function join() {
         const username = document.getElementById('username').value;
         if (!username) {
             alert('Please enter your name');
             return;
         }
-        localStorage.setItem('username', username); // 사용자 이름을 로컬 스토리지에 저장
-        window.location.href = '/chat'; // /chat 페이지로 이동
+        localStorage.setItem('username', username);
+        if (selectedLocation) {
+            localStorage.setItem('selectedLocation', JSON.stringify(selectedLocation));
+        }
+        localStorage.setItem('selectedWeather', selectedWeather);
+        window.location.href = '/chat';
+    }
+
+    function initMap() {
+        const map = new google.maps.Map(document.getElementById('map'), {
+            center: {lat: 0, lng: 0},
+            zoom: 2
+        });
+
+        const weatherRoomLocations = [[${weatherRoomLocations}]];
+        for (const room in weatherRoomLocations) {
+            const [lat, lon] = weatherRoomLocations[room].split(',');
+            new google.maps.Marker({
+                position: {lat: parseFloat(lat), lng: parseFloat(lon)},
+                map: map,
+                title: room
+            });
+        }
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                const pos = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                };
+
+                new google.maps.Marker({
+                    position: pos,
+                    map: map,
+                    title: 'Current Location',
+                    icon: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+                });
+
+                map.setCenter(pos);
+                map.setZoom(12);
+                fetchWeatherInfo(pos.lat, pos.lng, 'current');
+                fetchLocationInfo(pos.lat, pos.lng, 'current');
+            }, function() {
+                handleLocationError(true, map.getCenter());
+            });
+        } else {
+            handleLocationError(false, map.getCenter());
+        }
+
+
+        map.addListener('click', function(event) {
+            if (selectedLocation) {
+                selectedLocation.setMap(null);
+            }
+
+            selectedLocation = new google.maps.Marker({
+                position: event.latLng,
+                map: map,
+                title: 'Selected Location',
+                icon: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png'
+            });
+
+            document.getElementById('selected-location-weather').classList.add('clickable');
+
+            const lat = event.latLng.lat();
+            const lon = event.latLng.lng();
+
+            fetchWeatherInfo(lat, lon, 'selected');
+            fetchLocationInfo(lat, lon, 'selected');
+        });
+    }
+
+    function fetchWeatherInfo(lat, lon, locationType) {
+        const apiKey = [[${openWeatherMapApiKey}]];
+        const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`;
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                const weatherInfo = data.weather[0].main;
+                const temperatureInfo = data.main.temp;
+                if (locationType === 'current') {
+                    document.getElementById('weather-info').textContent = `날씨: ${weatherInfo}`;
+                    document.getElementById('temperature-info').textContent = `기온: ${temperatureInfo}°C`;
+                } else {
+                    document.getElementById('selected-weather-info').textContent = `날씨: ${weatherInfo}`;
+                    document.getElementById('selected-temperature-info').textContent = `기온: ${temperatureInfo}°C`;
+                }
+            })
+            .catch(error => {
+                console.log('Error fetching weather info:', error);
+            });
+    }
+
+    function fetchLocationInfo(lat, lon, locationType) {
+        const apiKey = [[${googleMapsApiKey}]];
+        const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&key=${apiKey}&language=ko`;
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'OK' && data.results.length > 0) {
+                    const locationInfo = data.results[0].formatted_address;
+                    if (locationType === 'current') {
+                        document.getElementById('location-info').textContent = `현재 위치: ${locationInfo}`;
+                    } else {
+                        document.getElementById('selected-location-info').textContent = `클릭한 위치: ${locationInfo}`;
+                    }
+                } else {
+                    console.log('Geocoding API error:', data.status);
+                }
+            })
+            .catch(error => {
+                console.log('Error fetching location info:', error);
+            });
+    }
+
+    function handleLocationError(browserHasGeolocation, pos) {
+        console.log(browserHasGeolocation ?
+            'Error: The Geolocation service failed.' :
+            'Error: Your browser doesn\'t support geolocation.');
     }
 </script>
+<script th:src="'https://maps.googleapis.com/maps/api/js?key=' + ${googleMapsApiKey} + '&callback=initMap'" async defer></script>
 </body>
 </html>
