@@ -97,10 +97,28 @@
             return;
         }
         localStorage.setItem('username', username);
-        if (selectedLocation) {
-            localStorage.setItem('selectedLocation', JSON.stringify(selectedLocation));
+
+        // 선택한 위치 또는 현재 위치의 날씨 정보를 로컬 스토리지에 저장
+        if (selectedWeather === 'selected' && selectedLocation) {
+            localStorage.setItem('selectedWeather', JSON.stringify({
+                lat: selectedLocation.getPosition().lat(),
+                lon: selectedLocation.getPosition().lng()
+            }));
+        } else if (selectedWeather === 'current') {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                localStorage.setItem('selectedWeather', JSON.stringify({
+                    lat: position.coords.latitude,
+                    lon: position.coords.longitude
+                }));
+                window.location.href = '/chat';
+            }, function() {
+                handleLocationError(true, map.getCenter());
+            });
+            return; // getCurrentPosition의 콜백에서 페이지 이동을 처리하므로 여기서는 return합니다.
+        } else {
+            localStorage.removeItem('selectedWeather');
         }
-        localStorage.setItem('selectedWeather', selectedWeather);
+
         window.location.href = '/chat';
     }
 

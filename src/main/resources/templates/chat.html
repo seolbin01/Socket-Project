@@ -46,16 +46,19 @@
     }
   }
 
-  function connect(lat, lon) {
+  function connect() {
     socket = new SockJS('/chat');
 
     socket.onopen = function() {
       console.log('Connected to the WebSocket');
+
+      // 로컬 스토리지에서 선택한 위치의 날씨 정보
+      const selectedWeather = JSON.parse(localStorage.getItem('selectedWeather'));
+
       socket.send(JSON.stringify({
         type: 'join',
         username: username,
-        lat: lat,
-        lon: lon
+        weather: selectedWeather || null
       }));
     };
 

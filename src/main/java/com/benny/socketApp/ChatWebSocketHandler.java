@@ -63,12 +63,20 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         String username = (String) msg.get("username");
         String weather;
 
-        if (msg.containsKey("lat") && msg.containsKey("lon")) {
+        if (msg.containsKey("weather")) {
+            // 클라이언트에서 선택한 위치의 날씨 정보를 사용
+            Map<String, Double> selectedWeather = (Map<String, Double>) msg.get("weather");
+            if (selectedWeather != null && selectedWeather.containsKey("lat") && selectedWeather.containsKey("lon")) {
+                double lat = selectedWeather.get("lat");
+                double lon = selectedWeather.get("lon");
+                weather = weatherService.getWeather(lat, lon);
+            } else {
+                weather = "Unknown";
+            }
+        } else if (msg.containsKey("lat") && msg.containsKey("lon")) {
             double lat = ((Number) msg.get("lat")).doubleValue();
             double lon = ((Number) msg.get("lon")).doubleValue();
             weather = weatherService.getWeather(lat, lon);
-        } else if (msg.containsKey("weather")) {
-            weather = (String) msg.get("weather");
         } else {
             weather = "Unknown";
         }
