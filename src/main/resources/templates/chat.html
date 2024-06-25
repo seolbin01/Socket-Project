@@ -11,11 +11,6 @@
   </style>
 </head>
 <body>
-<div id="login-form">
-  <input type="text" id="username" placeholder="닉네임을 입력하세요">
-  <button onclick="join()">채팅 들어가기</button>
-</div>
-
 <div id="chat-container">
   <h2 id="weather-info"></h2>
   <div id="participants">
@@ -30,19 +25,14 @@
 <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
 <script>
   let socket;
-  let username;
+  let username = localStorage.getItem('username');
   let inChatRoom = false;
 
-  function join() {
-    username = document.getElementById('username').value;
-    if (!username) {
-      alert('Please enter your name');
-      return;
-    }
-    document.getElementById('login-form').style.display = 'none';
+  if (!username) {
+    window.location.href = '/';
+  } else {
     document.getElementById('chat-container').style.display = 'block';
 
-    // 위치 정보 가져오기
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(function(position) {
         connect(position.coords.latitude, position.coords.longitude);
@@ -94,28 +84,6 @@
     };
   }
 
-  function join() {
-    username = document.getElementById('username').value;
-    if (!username) {
-      alert('Please enter your name');
-      return;
-    }
-    document.getElementById('login-form').style.display = 'none';
-    document.getElementById('chat-container').style.display = 'block';
-
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(function(position) {
-        connect(position.coords.latitude, position.coords.longitude);
-      }, function(error) {
-        console.error("Error getting location:", error);
-        connect(0, 0); // 기본값 사용
-      });
-    } else {
-      console.log("Geolocation is not available");
-      connect(0, 0); // 기본값 사용
-    }
-  }
-
   function sendMessage() {
     const messageInput = document.getElementById('message-input');
     if (messageInput.value && socket.readyState === SockJS.OPEN) {
@@ -128,6 +96,7 @@
       messageInput.value = '';
     }
   }
+
   function addChatMessage(message) {
     const chatMessages = document.getElementById('chat-messages');
     const messageElement = document.createElement('p');

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Chat</title>
+</head>
+<body>
+<div id="login-form">
+    <input type="text" id="username" placeholder="닉네임을 입력하세요">
+    <button onclick="join()">채팅 들어가기</button>
+</div>
+
+<script>
+    function join() {
+        const username = document.getElementById('username').value;
+        if (!username) {
+            alert('Please enter your name');
+            return;
+        }
+        localStorage.setItem('username', username); // 사용자 이름을 로컬 스토리지에 저장
+        window.location.href = '/chat'; // /chat 페이지로 이동
+    }
+</script>
+</body>
+</html>
