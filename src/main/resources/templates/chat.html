@@ -12,19 +12,19 @@
 </head>
 <body>
 <div id="login-form">
-  <input type="text" id="username" placeholder="Enter your name">
-  <button onclick="join()">Join Chat</button>
+  <input type="text" id="username" placeholder="닉네임을 입력하세요...">
+  <button onclick="join()">채팅 들어가기</button>
 </div>
 
 <div id="chat-container">
   <h2 id="weather-info"></h2>
   <div id="participants">
-    <h3>Participants</h3>
+    <h3>참여자 목록</h3>
     <ul id="participant-list"></ul>
   </div>
   <div id="chat-messages"></div>
-  <input type="text" id="message-input" placeholder="Type a message...">
-  <button onclick="sendMessage()">Send</button>
+  <input type="text" id="message-input" placeholder="메시지를 입력하세요...">
+  <button onclick="sendMessage()">보내기</button>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
@@ -148,7 +148,7 @@
   }
 
   function updateWeatherInfo(weather) {
-    document.getElementById('weather-info').textContent = `Current Weather: ${weather}`;
+    document.getElementById('weather-info').textContent = `현재 날씨: ${weather}`;
   }
 
   document.getElementById('message-input').addEventListener('keypress', function(e) {

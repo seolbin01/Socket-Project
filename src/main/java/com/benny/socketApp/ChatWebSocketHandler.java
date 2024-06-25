@@ -77,7 +77,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         sessionWeatherMap.put(session, weather);  // 세션과 날씨 매핑
 
         // 입장 메시지 브로드캐스트
-        broadcastToRoom(weather, createMessage("system", username + " has joined the room. Current weather: " + weather, new Date()));
+        broadcastToRoom(weather, createMessage("시스템", username + "님이 방을 떠났습니다. 현재 날씨: " + weather, new Date()));
 
         // 참여자 목록 업데이트
         updateParticipants(weather);
@@ -149,7 +149,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
                     weatherRooms.remove(weather);
                 } else {
                     // 퇴장 메시지 브로드캐스트
-                    broadcastToRoom(weather, createMessage("system", username + " has left the room.", new Date()));
+                    broadcastToRoom(weather, createMessage("시스템", username + "님이 방을 떠났습니다.", new Date()));
                     // 참여자 목록 업데이트
                     updateParticipants(weather);
                 }
